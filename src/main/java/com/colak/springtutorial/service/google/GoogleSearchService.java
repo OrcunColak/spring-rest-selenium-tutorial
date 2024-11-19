@@ -34,13 +34,21 @@ public class GoogleSearchService implements IBaseService {
             driver = WebDriverFactory.createDriver();
             driver.get("https://www.google.com");
 
+            // Finds the search input box on Google’s homepage using the name attribute (q).
             WebElement searchBox = driver.findElement(By.name("q"));
+            // Types the query into the search box.
             searchBox.sendKeys(query);
+
+            // Submits the form by calling submit() on the search box element.
             searchBox.submit();
 
+            // Waits for up to 10 seconds for the search results to appear.
             WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
+            // Specifically, it waits for any <h3> element (Google uses <h3> tags for result titles) to be present in the DOM.
             wait.until(ExpectedConditions.presenceOfElementLocated(By.cssSelector("h3")));
 
+            // Finds all <h3> elements on the page, which represent search result titles.
+            // Limits the list to the maxCount number of results using a stream().
             List<WebElement> results = driver
                     .findElements(By.cssSelector("h3"))
                     .stream()
@@ -49,18 +57,28 @@ public class GoogleSearchService implements IBaseService {
 
             response = results
                     .stream()
-                    .map(result -> new SearchResponse(result.getText(),
-                            result.findElement(By.xpath(".."))
-                                    .getAttribute("href")))
+                    .map(result -> new SearchResponse(
+                            // Extracts the title text
+                            result.getText(),
+                            getUrl(result))
+                    )
                     .toList();
         } catch (Exception e) {
             log.error("Exception Occurred in Google Search", e);
         } finally {
+            // the browser session is terminated by calling driver.quit().
             if (driver != null) {
                 driver.quit();
             }
         }
         return response;
+    }
+
+    private static String getUrl(WebElement result) {
+        // Finds the parent <a> element of the <h3> (the clickable link).
+        return result.findElement(By.xpath(".."))
+                // Extracts the URL from the <a> element.
+                .getAttribute("href");
     }
 
 }
